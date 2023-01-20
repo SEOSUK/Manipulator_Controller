@@ -1,7 +1,6 @@
 /*
   Copyright 2018
 */
-
 #include "my_plugin.h"
 #include <pluginlib/class_list_macros.h>
 #include <QStringList>
@@ -16,6 +15,23 @@ float value_z = 0;
 float cmd_x = 0;
 float cmd_y = 0;
 float cmd_z = 0;
+
+double l1 = 0.04233;
+double l2 = 0.12409;
+double l3 = 0.12409;
+double l4 = 0.14909;
+
+double FK_x = 0;
+double FK_y = 0;
+double FK_z = 0;
+
+double q1 = 0;
+double q2 = 0;
+double q3 = 0;
+double q4 = 0;
+
+double Request_Send = 0;
+double Response_Receive = 0;
 
 namespace rqt_mypkg_cpp
 {
@@ -55,10 +71,15 @@ void MyPlugin::initPlugin(qt_gui_cpp::PluginContext& context)
 
 
   Publisher_set = n.createTimer(ros::Duration(0.01), &MyPlugin::publisher_set, this);
-  Callback_set = n.createTimer(ros::Duration(0.02), &MyPlugin::callback_set, this);
+  Callback_set = n.createTimer(ros::Duration(0.01), &MyPlugin::callback_set, this);
+  Ping_set = n.createTimer(ros::Duration(3), &MyPlugin::ping_callback, this);
+
   //HoverServer = n.advertiseService("/FAC_HoverService", &MyPlugin::FAC_Hover_Callback, this); // Get state from Drone to GUI
-  cmd_Publisher = n.advertise<sensor_msgs::JointState>("goal_dynamixel_position", 100);
+//  cmd_Publisher = n.advertise<sensor_msgs::JointState>("goal_dynamixel_position", 100);  // Dynamixel에 direct로 cmd 값 주기
+  cmd_Publisher = n.advertise<geometry_msgs::Twist>("/goal_EE_position", 100);
   AngleSubscriber = n.subscribe("/Test_Pub", 100, &MyPlugin::AngleSubscriber_Callback, this);
+  ping_client = n.serviceClient<std_srvs::Empty>("/ping_tester");
+  pub = n.advertise<geometry_msgs::Twist>("pub", 100);
 
 }
 
@@ -67,25 +88,83 @@ void MyPlugin::initPlugin(qt_gui_cpp::PluginContext& context)
 
 void MyPlugin::shutdownPlugin()
 {
-    // unregister all publishers here
+
     publisher.shutdown();
+    cmd_Publisher.shutdown();
+    AngleSubscriber.shutdown();
+    ros::shutdown();
+}
+
+void MyPlugin::ping_callback(const ros::TimerEvent&)
+{
+  Request_Send = ros::Time::now().toSec();
+  ping_client.call(empty);
+
+  if (ping_client.call(empty)) Response_Receive = ros::Time::now().toSec();
+  else {} //에러 뜨면 처리 하자.
+
+
+    ui_.lbl_ping_update->setText((QString::number(Response_Receive - Request_Send)));
 }
 
 void MyPlugin::callback_set(const ros::TimerEvent&) 
 {
-  if (isCallback) ros::spin();
+  if (isCallback) 
+  {
+    ui_.txt_joint1->setText((QString::number(q1)));
+    ui_.txt_joint2->setText((QString::number(q2)));
+    ui_.txt_joint3->setText((QString::number(q3)));
+    ui_.txt_joint4->setText((QString::number(q4)));
+
+
+    Eigen::Matrix4d T =
+          DH(  EIGEN_PI/2 ,   0,  l1, q1) *
+          DH(       0     ,  l2,   0, q2) *
+          DH(       0     ,  l3,   0, q3) *
+          DH( - EIGEN_PI/2, l4,   0 , q4);
+
+      FK_x = T.coeff(0,3);
+      FK_y = T.coeff(1,3);
+      FK_z = T.coeff(2,3);
+
+
+    ui_.txt_FK_x->setText((QString::number(FK_x)));
+    ui_.txt_FK_y->setText((QString::number(FK_y)));
+    ui_.txt_FK_z->setText((QString::number(FK_z)));
+
+    
+
+    ui_.txt_Error_x->setText((QString::number(value_x - FK_x)));
+    ui_.txt_Error_y->setText((QString::number(value_y - FK_y)));  
+    ui_.txt_Error_z->setText((QString::number(value_z - FK_z)));
+  
+
+      // 안전장치 (QScroll Bar) //
+        if(! ui_.chk_Publish->isChecked() && isCallback)
+        {
+        ui_.qsc_x->setValue(FK_x);   //현재 ENd EFfector의 위치를 넣자.
+        ui_.qsc_y->setValue(FK_y);
+        ui_.qsc_z->setValue(FK_z);
+        
+        }
+
+   ros::spinOnce();
+  }
 }
 
 
 void MyPlugin::publisher_set(const ros::TimerEvent&) 
 {
-  if(ui_.chk_Publish->isChecked()) 
+  if(ui_.chk_Publish->isChecked() && isCallback) 
   {
-  sensor_msgs::JointState cmd_Position;
-  cmd_Position.position.push_back(value_x);
-  cmd_Position.position.push_back(value_y);
-  cmd_Position.position.push_back(value_z);
-  
+  geometry_msgs::Twist cmd_Position;
+  cmd_Position.linear.x = value_x / 1000;
+  cmd_Position.linear.y = value_y / 1000;
+  cmd_Position.linear.z = value_z / 1000;
+  twist.linear.x = value_x;
+  twist.linear.y = value_y;
+  twist.linear.z = value_z;
+  pub.publish(twist);
   cmd_Publisher.publish(cmd_Position);
   }
 }
@@ -94,24 +173,25 @@ void MyPlugin::publisher_set(const ros::TimerEvent&)
 void MyPlugin::qsc_x_callback(int val)
 {
   value_x = val;
-  value_x /= 100;
+  value_x = value_x / 100000;
   ui_.lbl_cmd_x->setText((QString::number(value_x, 'f', 3)));
 }
 
 void MyPlugin::qsc_y_callback(int val)
 {
   value_y = val;
-  value_y /= 100;
+  value_y = value_y / 100000;
   ui_.lbl_cmd_y->setText((QString::number(value_y, 'f', 3)));
 }
 
 void MyPlugin::qsc_z_callback(int val)
 {
   value_z = val;
-  value_z /= 100;
+  value_z = value_z / 100000;
   ui_.lbl_cmd_z->setText((QString::number(value_z, 'f', 3)));
 }
 
+//  ui_.lbl_cmd_z->setText((QString::number(value_z, 'f', 3)));
 
 
 void MyPlugin::btn_Start_Callback(bool val)
@@ -138,26 +218,16 @@ void MyPlugin::btn_Start_Callback(bool val)
   return ;
 }
 
+
+
+
 void MyPlugin::AngleSubscriber_Callback(const geometry_msgs::Twist &msg)
 {
-  if(! ui_.chk_Publish->isChecked())
-  {
-  ui_.qsc_x->setValue(msg.linear.x);
-  ui_.qsc_y->setValue(msg.linear.y);
-  ui_.qsc_z->setValue(msg.linear.z);
-  }
+  q1 = msg.linear.x;
+  q2 = msg.linear.y;
+  q3 = msg.linear.z;
+  q4 = msg.angular.x;
 
-  if(isCallback)
-  {
-  ui_.txt_joint1->setText((QString::number(msg.linear.x)));
-  ui_.txt_joint2->setText((QString::number(msg.linear.y)));
-  ui_.txt_joint3->setText((QString::number(msg.linear.z)));
-
-  ui_.txt_Error_x->setText((QString::number(value_x - msg.linear.x)));
-  ui_.txt_Error_y->setText((QString::number(value_y - msg.linear.y)));  
-  ui_.txt_Error_z->setText((QString::number(value_z - msg.linear.z)));
-
-  }
 }
 
 

@@ -12,6 +12,9 @@
 #include <std_msgs/UInt16.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/JointState.h>
+#include <eigen3/Eigen/Dense>
+#include <vector>
+#include "std_srvs/Empty.h"
 
 
 //#include "rqt_mypkg/FAC_HoverService.h"
@@ -26,17 +29,32 @@ public:
     MyPlugin();
     virtual void initPlugin(qt_gui_cpp::PluginContext& context);
     virtual void shutdownPlugin();
-
+    
 private slots:
 
    // void Arm_Callback(bool val);    
     void publisher_set(const ros::TimerEvent&);
     void callback_set(const ros::TimerEvent&);
+    void ping_callback(const ros::TimerEvent&);    
     void qsc_x_callback(int val);
     void qsc_y_callback(int val);
     void qsc_z_callback(int val);
     void btn_Start_Callback(bool val);
     void AngleSubscriber_Callback(const geometry_msgs::Twist &msg);
+
+    static Eigen::Matrix4d DH(double alpha, double a, double d, double theta)
+{
+    double cosT = cos(theta), sinT = sin(theta);
+    double cosA = cos(alpha), sinA = sin(alpha);
+    Eigen::Matrix4d T;
+    T <<      cosT,     -sinT,     0,       a,
+         sinT*cosA, cosT*cosA, -sinA, -sinA*d,
+         sinT*sinA, cosT*sinA,  cosA,  cosA*d,
+                 0,         0,     0,       1;
+    return T;
+};
+
+
  //   bool FAC_Hover_Callback(rqt_mypkg::FAC_HoverService::Request &req, rqt_mypkg::FAC_HoverService::Response &res);
  //   void keyPressEvent(QKeyEvent *event); 
     
@@ -45,12 +63,15 @@ private slots:
     QWidget* widget_;
     ros::Publisher publisher;         //이건 GUI Shutdown 용이라서 건들면 안 됨.
     ros::Publisher cmd_Publisher;
+    ros::Publisher pub;
     ros::Subscriber AngleSubscriber;
+    ros::ServiceClient ping_client;
     ros::Timer Publisher_set;
     ros::Timer Callback_set;
+    ros::Timer Ping_set;
 
-
-
+    geometry_msgs::Twist twist;
+    std_srvs::Empty empty;
     //    ros::ServiceServer HoverServer;
 };
 
