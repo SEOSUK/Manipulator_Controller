@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>791</width>
-    <height>510</height>
+    <width>701</width>
+    <height>551</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -28,7 +28,7 @@
         <x>0</x>
         <y>30</y>
         <width>671</width>
-        <height>421</height>
+        <height>491</height>
        </rect>
       </property>
       <widget class="QWidget" name="gridLayoutWidget">
@@ -36,7 +36,7 @@
         <rect>
          <x>0</x>
          <y>10</y>
-         <width>85</width>
+         <width>89</width>
          <height>151</height>
         </rect>
        </property>
@@ -44,21 +44,21 @@
         <item row="0" column="0">
          <widget class="QLabel" name="cmd_x">
           <property name="text">
-           <string>cmd_x (mm)</string>
+           <string>cmd_x (m)</string>
           </property>
          </widget>
         </item>
         <item row="1" column="0">
          <widget class="QLabel" name="cmd_y">
           <property name="text">
-           <string>cmd_y (mm)</string>
+           <string>cmd_y (m)</string>
           </property>
          </widget>
         </item>
         <item row="2" column="0">
          <widget class="QLabel" name="cmd_z">
           <property name="text">
-           <string>cmd_z (mm)</string>
+           <string>cmd_z (m)</string>
           </property>
          </widget>
         </item>
@@ -74,19 +74,6 @@
         </rect>
        </property>
        <layout class="QGridLayout" name="cmd_QScroll">
-        <item row="2" column="0">
-         <widget class="QScrollBar" name="qsc_z">
-          <property name="minimum">
-           <number>17000000</number>
-          </property>
-          <property name="maximum">
-           <number>27000000</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
         <item row="1" column="0">
          <widget class="QScrollBar" name="qsc_y">
           <property name="maximum">
@@ -100,10 +87,23 @@
         <item row="0" column="0">
          <widget class="QScrollBar" name="qsc_x">
           <property name="minimum">
-           <number>27000000</number>
+           <number>0</number>
           </property>
           <property name="maximum">
-           <number>37000000</number>
+           <number>10000000</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QScrollBar" name="qsc_z">
+          <property name="minimum">
+           <number>0</number>
+          </property>
+          <property name="maximum">
+           <number>10000000</number>
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -721,6 +721,16 @@
        </property>
        <property name="text">
         <string>Publish Command</string>
+       </property>
+      </widget>
+      <widget class="QPlainTextEdit" name="pte_stateLog">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>380</y>
+         <width>651</width>
+         <height>101</height>
+        </rect>
        </property>
       </widget>
      </widget>

@@ -15,6 +15,7 @@
 #include <eigen3/Eigen/Dense>
 #include <vector>
 #include "std_srvs/Empty.h"
+#include "rqt_mypkg/DasomDynamixel.h"
 
 
 //#include "rqt_mypkg/FAC_HoverService.h"
@@ -35,12 +36,16 @@ private slots:
    // void Arm_Callback(bool val);    
     void publisher_set(const ros::TimerEvent&);
     void callback_set(const ros::TimerEvent&);
+    void TextBox_callback(const ros::TimerEvent&);    
     void ping_callback(const ros::TimerEvent&);    
     void qsc_x_callback(int val);
     void qsc_y_callback(int val);
     void qsc_z_callback(int val);
+    void writeLog(QString str);
     void btn_Start_Callback(bool val);
-    void AngleSubscriber_Callback(const geometry_msgs::Twist &msg);
+    void AngleSubscriber_Callback(const sensor_msgs::JointState &msg);
+    void LimitSubscriber_Callback(const rqt_mypkg::DasomDynamixel &msg);
+
 
     static Eigen::Matrix4d DH(double alpha, double a, double d, double theta)
 {
@@ -65,13 +70,12 @@ private slots:
     ros::Publisher cmd_Publisher;
     ros::Publisher pub;
     ros::Subscriber AngleSubscriber;
-    ros::ServiceClient ping_client;
+    ros::Subscriber limitsubscriber;
+//    ros::ServiceClient ping_client;
     ros::Timer Publisher_set;
     ros::Timer Callback_set;
-    ros::Timer Ping_set;
+    ros::Timer TextBox_set;
 
-    geometry_msgs::Twist twist;
-    std_srvs::Empty empty;
     //    ros::ServiceServer HoverServer;
 };
 
