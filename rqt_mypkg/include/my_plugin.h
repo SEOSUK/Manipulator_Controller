@@ -52,10 +52,10 @@ private slots:
     double cosT = cos(theta), sinT = sin(theta);
     double cosA = cos(alpha), sinA = sin(alpha);
     Eigen::Matrix4d T;
-    T <<      cosT,     -sinT,     0,       a,
-         sinT*cosA, cosT*cosA, -sinA, -sinA*d,
-         sinT*sinA, cosT*sinA,  cosA,  cosA*d,
-                 0,         0,     0,       1;
+    T <<      cosT, -sinT*cosA,  sinT*sinA,  a*cosT,
+              sinT,  cosT*cosA, -cosT*sinA,  a*sinT,
+                 0,       sinA,       cosA,       d,
+                 0,          0,          0,       1;
     return T;
 };
 
@@ -76,6 +76,9 @@ private slots:
     ros::Timer Callback_set;
     ros::Timer TextBox_set;
 
+
+
+    geometry_msgs::Twist cmd_position;
     //    ros::ServiceServer HoverServer;
 };
 

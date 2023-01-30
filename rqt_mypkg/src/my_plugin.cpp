@@ -73,12 +73,12 @@ void MyPlugin::initPlugin(qt_gui_cpp::PluginContext& context)
 //  QObject::connect(ui_.btn_Manipulator, SIGNAL(clicked(bool)), this, SLOT(Manipulator_Callback(bool))); // Manipulator button (Click)
 
 
-  Publisher_set = n.createTimer(ros::Duration(0.01), &MyPlugin::publisher_set, this);
-  Callback_set = n.createTimer(ros::Duration(0.01), &MyPlugin::callback_set, this);
+  Publisher_set = n.createTimer(ros::Duration(0.004), &MyPlugin::publisher_set, this);
+  Callback_set = n.createTimer(ros::Duration(0.004), &MyPlugin::callback_set, this);
   TextBox_set = n.createTimer(ros::Duration(0.1), &MyPlugin::TextBox_callback, this);
 
   //HoverServer = n.advertiseService("/FAC_HoverService", &MyPlugin::FAC_Hover_Callback, this); // Get state from Drone to GUI
-  cmd_Publisher = n.advertise<sensor_msgs::JointState>("/dasom/position_limit", 100);  // Dynamixel에 direct로 cmd 값 주기
+  cmd_Publisher = n.advertise<geometry_msgs::Twist>("/dasom/goal_EE_position", 100);  // Dynamixel에 direct로 cmd 값 주기
 //  cmd_Publisher = n.advertise<geometry_msgs::Twist>("/goal_EE_position", 100);
   AngleSubscriber = n.subscribe("/dasom/joint_states", 100, &MyPlugin::AngleSubscriber_Callback, this);
   limitsubscriber = n.subscribe("/dasom/goal_dynamixel_position", 100, &MyPlugin::LimitSubscriber_Callback, this);
@@ -144,14 +144,14 @@ void MyPlugin::callback_set(const ros::TimerEvent&)
     ui_.txt_joint1->setText((QString::number(q1)));
     ui_.txt_joint2->setText((QString::number(q2)));
     ui_.txt_joint3->setText((QString::number(q3)));
-//    ui_.txt_joint4->setText((QString::number(q4)));
+    ui_.txt_joint4->setText((QString::number(q4)));
 
 
     Eigen::Matrix4d T =
           DH(  EIGEN_PI/2 ,   0,  l1, q1) *
           DH(       0     ,  l2,   0, q2) *
           DH(       0     ,  l3,   0, q3) *
-          DH( - EIGEN_PI/2, l4,   0 , q4);
+          DH( - EIGEN_PI/2,  l4,   0, q4);
 
       FK_x = T.coeff(0,3);
       FK_y = T.coeff(1,3);
@@ -172,9 +172,9 @@ void MyPlugin::callback_set(const ros::TimerEvent&)
       // 안전장치 (QScroll Bar) //
         if(! ui_.chk_Publish->isChecked() && isCallback)
         {
-        ui_.qsc_x->setValue(q1);   //현재 ENd EFfector의 위치를 넣자.
-        ui_.qsc_y->setValue(q2);
-        ui_.qsc_z->setValue(q3);
+        ui_.qsc_x->setValue(FK_x * 10000000);   //현재 ENd EFfector의 위치를 넣자.
+        ui_.qsc_y->setValue(FK_y * 10000000);
+        ui_.qsc_z->setValue(FK_z * 10000000);
         
         }
 
@@ -192,14 +192,11 @@ void MyPlugin::publisher_set(const ros::TimerEvent&)
 //  cmd_Position.linear.y = value_y;
 //  cmd_Position.linear.z = value_z;
 
-    sensor_msgs::JointState cmd_Position;
+  cmd_position.linear.x = value_x;
+  cmd_position.linear.y = value_y;
+  cmd_position.linear.z = value_z;
 
-  cmd_Position.position.push_back(value_x);
-  cmd_Position.position.push_back(value_y);
-  cmd_Position.position.push_back(value_z);
-
-
-  cmd_Publisher.publish(cmd_Position);
+  cmd_Publisher.publish(cmd_position);
   }
 }
 
@@ -207,21 +204,21 @@ void MyPlugin::publisher_set(const ros::TimerEvent&)
 void MyPlugin::qsc_x_callback(int val)
 {
   value_x = val;
-  value_x = value_x / 5000000;
+  value_x = value_x / 10000000;
   ui_.lbl_cmd_x->setText((QString::number(value_x, 'f', 3)));
 }
 
 void MyPlugin::qsc_y_callback(int val)
 {
   value_y = val;
-  value_y = value_y / 5000000;
+  value_y = value_y / 10000000;
   ui_.lbl_cmd_y->setText((QString::number(value_y, 'f', 3)));
 }
 
 void MyPlugin::qsc_z_callback(int val)
 {
   value_z = val;
-  value_z = value_z / 5000000;
+  value_z = value_z / 10000000;
   ui_.lbl_cmd_z->setText((QString::number(value_z, 'f', 3)));
 }
 
@@ -264,7 +261,7 @@ void MyPlugin::AngleSubscriber_Callback(const sensor_msgs::JointState &msg)
   q1 = msg.position.at(0);
   q2 = msg.position.at(1);
   q3 = msg.position.at(2);
-//  q4 = msg.position.at(3);
+  q4 = msg.position.at(3);
 
 //  Flag_1 = msg.flag.at(0);
 //  Flag_2 = msg.flag.at(1);
@@ -277,7 +274,8 @@ void MyPlugin::LimitSubscriber_Callback(const rqt_mypkg::DasomDynamixel &msg)
   Flag_1 = msg.flag.at(0);
   Flag_2 = msg.flag.at(1);
   Flag_3 = msg.flag.at(2);
-
+  Flag_4 = msg.flag.at(3);
+  
 }
 
 
